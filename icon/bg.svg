@@ -1,0 +1,5 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='108' height='108' viewBox='0 0 108 108'>
+  <defs><radialGradient id="bgg" cx="0.5" cy="0.45" r="0.7">
+    <stop offset="0" stop-color="#1E1840"/><stop offset="0.6" stop-color="#0D0C1C"/><stop offset="1" stop-color="#07080D"/>
+  </radialGradient></defs>
+  <rect width="108" height="108" fill="url(#bgg)"/></svg>

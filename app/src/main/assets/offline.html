@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Offline</title>
+<style>
+  html,body{margin:0;height:100%;background:#07080d;color:#e7e6f5;font-family:system-ui,-apple-system,Roboto,sans-serif}
+  .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;box-sizing:border-box}
+  .radar{width:120px;height:120px;border-radius:50%;position:relative;margin-bottom:28px;
+    background:radial-gradient(circle,transparent 30%,rgba(139,123,255,.15) 31%,transparent 33%,transparent 63%,rgba(139,123,255,.2) 64%,transparent 66%);
+    border:2px solid rgba(139,123,255,.45);overflow:hidden}
+  .radar:after{content:"";position:absolute;inset:0;background:conic-gradient(from 0deg,rgba(94,234,212,.55),transparent 25%);animation:spin 2.4s linear infinite;border-radius:50%}
+  .dot{position:absolute;width:8px;height:8px;border-radius:50%;background:#5eead4;top:30%;left:62%;box-shadow:0 0 10px #5eead4}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  h1{font-size:22px;margin:0 0 8px;font-weight:650}
+  p{margin:0 0 26px;color:#9a98b8;font-size:15px;line-height:1.5;max-width:320px}
+  button{background:linear-gradient(135deg,#8b7bff,#5b45e0);color:#fff;border:0;border-radius:999px;padding:13px 34px;font-size:16px;font-weight:600;letter-spacing:.2px}
+  button:active{opacity:.8}
+</style></head>
+<body><div class="wrap">
+  <div class="radar"><span class="dot"></span></div>
+  <h1>No signal on the radar</h1>
+  <p>AI Daily Radar couldn't reach the network. Check your connection and try again.</p>
+  <button onclick="window.AndroidApp && AndroidApp.retry()">Retry</button>
+</div></body></html>
