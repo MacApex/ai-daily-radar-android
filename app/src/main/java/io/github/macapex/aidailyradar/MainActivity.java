@@ -13,7 +13,6 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
@@ -31,20 +30,25 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class MainActivity extends Activity {
 
     static final String HOME_URL = "https://macapex.github.io/ai-daily-radar/";
     static final String HOME_HOST = "macapex.github.io";
     static final String OFFLINE_URL = "file:///android_asset/offline.html";
-    static final long STALE_MS = 60L * 60L * 1000L; // refresh on resume after 1h
+    static final long STALE_MS = 15L * 60L * 1000L; // refresh on resume after 15 min
+    static final TimeZone REPORT_TZ = TimeZone.getTimeZone("Asia/Shanghai");
 
     private WebView web;
     private SwipeRefreshLayout swipe;
     private ProgressBar progress;
-    private long lastLoadAt = 0L;
+    private long lastLoadAt = 0L; // wall clock (System.currentTimeMillis)
     private String failedUrl = null;
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -144,13 +148,17 @@ public class MainActivity extends Activity {
         swipe.setOnChildScrollUpCallback((parent, child) -> web.getScrollY() > 0);
         swipe.setOnRefreshListener(this::refresh);
 
-        if (savedInstanceState != null) {
-            web.restoreState(savedInstanceState);
-            lastLoadAt = savedInstanceState.getLong("lastLoadAt", 0L);
-        } else {
-            Uri data = getIntent() != null ? getIntent().getData() : null;
-            loadFresh(data != null && isInternal(data) ? data.toString() : HOME_URL);
+        // Never restore a saved WebView (it would show yesterday's page after process death);
+        // always load fresh: the deep link, else the last internal page, else home.
+        Uri data = getIntent() != null ? getIntent().getData() : null;
+        String start = HOME_URL;
+        if (data != null && isInternal(data) && !"file".equals(data.getScheme())) {
+            start = data.toString();
+        } else if (savedInstanceState != null) {
+            String saved = savedInstanceState.getString("currentUrl");
+            if (saved != null && saved.startsWith("https://") && isInternal(Uri.parse(saved))) start = saved;
         }
+        loadFresh(start);
     }
 
     private boolean isInternal(Uri uri) {
@@ -180,11 +188,30 @@ public class MainActivity extends Activity {
         return ni != null && ni.isConnected();
     }
 
-    /** Online: normal HTTP caching (revalidates per server headers). Offline: use cache, even stale. */
+    /** Online: always hit the network (no stale HTML/JSON). Offline: use cache, even stale. */
     private void applyCacheMode() {
         web.getSettings().setCacheMode(isOnline()
-                ? WebSettings.LOAD_DEFAULT
+                ? WebSettings.LOAD_NO_CACHE
                 : WebSettings.LOAD_CACHE_ELSE_NETWORK);
+    }
+
+    private static String dayOf(long millis) {
+        SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        f.setTimeZone(REPORT_TZ);
+        return f.format(new Date(millis));
+    }
+
+    private static String localDayOf(long millis) {
+        SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        return f.format(new Date(millis));
+    }
+
+    /** Stale after 15 min, a calendar-day change (Asia/Shanghai or device-local), or a clock jump back. */
+    private boolean isStale() {
+        if (lastLoadAt <= 0) return true;
+        long now = System.currentTimeMillis();
+        if (now - lastLoadAt > STALE_MS || now < lastLoadAt) return true;
+        return !dayOf(now).equals(dayOf(lastLoadAt)) || !localDayOf(now).equals(localDayOf(lastLoadAt));
     }
 
     /** Loads the URL forcing the HTML document to be revalidated with the server. */
@@ -197,7 +224,7 @@ public class MainActivity extends Activity {
             headers.put("Pragma", "no-cache");
         }
         web.loadUrl(url, headers);
-        lastLoadAt = SystemClock.elapsedRealtime();
+        lastLoadAt = System.currentTimeMillis();
     }
 
     private void refresh() {
@@ -229,7 +256,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         web.onResume();
-        if (lastLoadAt > 0 && SystemClock.elapsedRealtime() - lastLoadAt > STALE_MS) refresh();
+        if (isStale()) refresh();
     }
 
     @Override
@@ -248,8 +275,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
-        web.saveState(out);
-        out.putLong("lastLoadAt", lastLoadAt);
+        // Only remember which internal page was open; the page itself is always reloaded fresh.
+        String cur = failedUrl != null ? failedUrl : (web != null ? web.getUrl() : null);
+        if (cur != null && cur.startsWith("https://")) out.putString("currentUrl", cur);
     }
 
     @SuppressWarnings("deprecation")
@@ -270,5 +298,5 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
 
-    static final class BuildConfigLite { static final String VERSION = "1.0.0"; }
+    static final class BuildConfigLite { static final String VERSION = "1.0.1"; }
 }

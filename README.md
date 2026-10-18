@@ -10,8 +10,9 @@ Grab `AI-Daily-Radar.apk` from the [latest release](../../releases/latest) and i
 ## Features
 - Full-screen, edge-to-edge WebView with dark `#07080d` background & splash matching the site
 - JavaScript, DOM storage and hardware-accelerated WebGL (for the 3D hero)
-- Fresh content when online (`LOAD_DEFAULT` + `Cache-Control: no-cache` revalidation of the page), cached copy when offline
-- Pull-to-refresh, and auto-refresh when you return to the app after more than 1 hour
+- Always fresh when online (`LOAD_NO_CACHE` + `Cache-Control: no-cache`), cached copy when offline
+- Cold starts always load the live site (no stale restored WebView state)
+- Pull-to-refresh, and auto-refresh when you return to the app after 15 minutes or on a new calendar day
 - Back button walks WebView history
 - Links outside `macapex.github.io` open in your browser
 - Friendly offline page with a Retry button
